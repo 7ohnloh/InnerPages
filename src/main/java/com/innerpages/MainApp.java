@@ -10,7 +10,7 @@ import com.innerpages.model.Comment;
 import com.innerpages.model.WeeklyEntry;
 import com.innerpages.view.SidebarView;
 import javafx.application.Application;
-import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -26,9 +26,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
 import java.util.Optional;
@@ -48,7 +47,7 @@ public class MainApp extends Application {
         DatabaseManager.initializeDatabase();
 
         Label titleLabel = new Label("InnerPages");
-        titleLabel.setFont(Font.font(20));
+        titleLabel.getStyleClass().add("app-title");
 
         sidebar = SidebarView.createSidebar(categoryDao.findAll());
         configureCategoryContextMenu();
@@ -59,19 +58,21 @@ public class MainApp extends Application {
         });
 
         Button addCategoryButton = new Button("+ Add Category");
+        addCategoryButton.getStyleClass().addAll("button", "button-primary");
         addCategoryButton.setMaxWidth(Double.MAX_VALUE);
         addCategoryButton.setOnAction(event -> addCategory());
 
         VBox leftPane = new VBox(12, titleLabel, sidebar, addCategoryButton);
-        leftPane.setPadding(new Insets(12));
-        leftPane.setStyle("-fx-background-color: #f0f0f0;");
+        leftPane.getStyleClass().add("sidebar-pane");
+        VBox.setVgrow(sidebar, Priority.ALWAYS);
 
         root = new BorderPane();
+        root.getStyleClass().add("app-root");
         root.setLeft(leftPane);
         root.setCenter(createWelcomeView());
-        root.setPadding(new Insets(10));
 
         Scene scene = new Scene(root, 900, 600);
+        scene.getStylesheets().add(getClass().getResource("/innerpages.css").toExternalForm());
         stage.setTitle("InnerPages");
         stage.setScene(scene);
         stage.show();
@@ -85,6 +86,10 @@ public class MainApp extends Application {
                     super.updateItem(category, empty);
                     setText(empty || category == null ? null : category.getName());
                     setContextMenu(empty || category == null ? null : createCategoryMenu(this));
+                    getStyleClass().remove("category-cell");
+                    if (!empty && category != null) {
+                        getStyleClass().add("category-cell");
+                    }
                 }
             };
             return cell;
@@ -115,9 +120,11 @@ public class MainApp extends Application {
 
     private Node createWelcomeView() {
         Label contentLabel = new Label("Welcome to InnerPages");
-        contentLabel.setFont(Font.font(18));
-        VBox view = new VBox(contentLabel);
-        view.setPadding(new Insets(18));
+        contentLabel.getStyleClass().add("welcome-title");
+        Label helperLabel = new Label("Choose a category to view journal entries and notes.");
+        helperLabel.getStyleClass().add("muted-label");
+        VBox view = new VBox(8, contentLabel, helperLabel);
+        view.getStyleClass().add("content-pane");
         return view;
     }
 
@@ -130,47 +137,62 @@ public class MainApp extends Application {
 
     private void renderCategoryView(Category category) {
         Label heading = new Label(category.getName());
-        heading.setFont(Font.font(null, FontWeight.BOLD, 24));
+        heading.getStyleClass().add("page-heading");
 
         Button addEntryButton = new Button("+ Add Weekly Entry");
+        addEntryButton.getStyleClass().addAll("button", "button-primary");
         addEntryButton.setOnAction(event -> addWeeklyEntry(category));
 
+        HBox header = new HBox(12, heading, addEntryButton);
+        header.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(heading, Priority.ALWAYS);
+
         VBox entryList = new VBox(10);
+        entryList.getStyleClass().add("entry-list");
         for (WeeklyEntry entry : weeklyEntryDao.findByCategoryId(category.getId())) {
             entryList.getChildren().add(createWeeklyEntryCard(entry));
         }
         if (entryList.getChildren().isEmpty()) {
-            entryList.getChildren().add(new Label("No weekly entries yet."));
+            Label emptyLabel = new Label("No weekly entries yet.");
+            emptyLabel.getStyleClass().add("empty-label");
+            entryList.getChildren().add(emptyLabel);
         }
 
-        VBox content = new VBox(14, heading, addEntryButton, entryList);
-        content.setPadding(new Insets(18));
+        VBox content = new VBox(18, header, entryList);
+        content.getStyleClass().add("content-pane");
 
         ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.getStyleClass().add("content-scroll");
         scrollPane.setFitToWidth(true);
         root.setCenter(scrollPane);
     }
 
     private Node createWeeklyEntryCard(WeeklyEntry entry) {
         Label title = new Label(entry.getTitle());
-        title.setFont(Font.font(null, FontWeight.BOLD, 15));
+        title.getStyleClass().add("card-title");
 
         Label createdAt = new Label("Created: " + entry.getCreatedAt());
+        createdAt.getStyleClass().add("meta-label");
         Label updatedAt = new Label("Last Updated: " + entry.getUpdatedAt());
+        updatedAt.getStyleClass().add("meta-label");
 
-        Button openButton = new Button("Open");
+        Button openButton = new Button("> Open");
+        openButton.getStyleClass().addAll("button", "button-secondary");
         openButton.setOnAction(event -> openWeeklyEntry(entry));
 
         Button renameButton = new Button("Rename");
+        renameButton.getStyleClass().addAll("button", "button-secondary");
         renameButton.setOnAction(event -> renameWeeklyEntry(entry));
 
         Button deleteButton = new Button("Delete");
+        deleteButton.getStyleClass().addAll("button", "button-danger");
         deleteButton.setOnAction(event -> deleteWeeklyEntry(entry));
 
         HBox actions = new HBox(8, openButton, renameButton, deleteButton);
-        VBox card = new VBox(8, title, createdAt, updatedAt, actions);
-        card.setPadding(new Insets(12));
-        card.setStyle("-fx-border-color: #d0d0d0; -fx-border-radius: 4; -fx-background-color: #ffffff;");
+        actions.setAlignment(Pos.CENTER_LEFT);
+        VBox timestamps = new VBox(3, createdAt, updatedAt);
+        VBox card = new VBox(10, title, timestamps, actions);
+        card.getStyleClass().add("entry-card");
         return card;
     }
 
@@ -188,29 +210,37 @@ public class MainApp extends Application {
 
     private void renderEntryDetailView(WeeklyEntry entry) {
         Label heading = new Label(entry.getTitle());
-        heading.setFont(Font.font(null, FontWeight.BOLD, 24));
+        heading.getStyleClass().add("page-heading");
 
-        Button backButton = new Button("Back");
+        Button backButton = new Button("< Back");
+        backButton.getStyleClass().addAll("button", "button-secondary");
         backButton.setOnAction(event -> renderSelectedCategory());
 
         Button summariseButton = new Button("Summarise Comments");
+        summariseButton.getStyleClass().addAll("button", "button-secondary");
         summariseButton.setDisable(true);
 
         HBox topActions = new HBox(8, backButton, summariseButton);
+        topActions.setAlignment(Pos.CENTER_LEFT);
 
         VBox commentsList = new VBox(10);
+        commentsList.getStyleClass().add("entry-list");
         for (Comment comment : commentDao.findByWeeklyEntryId(entry.getId())) {
             commentsList.getChildren().add(createCommentCard(comment));
         }
         if (commentsList.getChildren().isEmpty()) {
-            commentsList.getChildren().add(new Label("No notes yet."));
+            Label emptyLabel = new Label("No notes yet.");
+            emptyLabel.getStyleClass().add("empty-label");
+            commentsList.getChildren().add(emptyLabel);
         }
 
         TextArea newCommentArea = new TextArea();
+        newCommentArea.getStyleClass().add("note-input");
         newCommentArea.setPromptText("Write a note...");
         newCommentArea.setPrefRowCount(4);
 
-        Button addNoteButton = new Button("Add Note");
+        Button addNoteButton = new Button("+ Add Note");
+        addNoteButton.getStyleClass().addAll("button", "button-primary");
         addNoteButton.setOnAction(event -> {
             String content = newCommentArea.getText().trim();
             if (content.isEmpty()) {
@@ -222,29 +252,34 @@ public class MainApp extends Application {
         });
 
         VBox content = new VBox(14, heading, topActions, commentsList, newCommentArea, addNoteButton);
-        content.setPadding(new Insets(18));
+        content.getStyleClass().add("content-pane");
 
         ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.getStyleClass().add("content-scroll");
         scrollPane.setFitToWidth(true);
         root.setCenter(scrollPane);
     }
 
     private Node createCommentCard(Comment comment) {
         Label createdAt = new Label(comment.getCreatedAt() == null ? "" : comment.getCreatedAt());
+        createdAt.getStyleClass().add("meta-label");
 
         Label content = new Label(comment.getContent());
+        content.getStyleClass().add("note-content");
         content.setWrapText(true);
 
         Button editButton = new Button("Edit");
+        editButton.getStyleClass().addAll("button", "button-secondary");
         editButton.setOnAction(event -> editComment(comment));
 
         Button deleteButton = new Button("Delete");
+        deleteButton.getStyleClass().addAll("button", "button-danger");
         deleteButton.setOnAction(event -> deleteComment(comment));
 
         HBox actions = new HBox(8, editButton, deleteButton);
+        actions.setAlignment(Pos.CENTER_LEFT);
         VBox card = new VBox(8, createdAt, content, actions);
-        card.setPadding(new Insets(12));
-        card.setStyle("-fx-border-color: #d0d0d0; -fx-border-radius: 4; -fx-background-color: #ffffff;");
+        card.getStyleClass().add("note-card");
         return card;
     }
 

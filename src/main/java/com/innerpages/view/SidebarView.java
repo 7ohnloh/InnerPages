@@ -9,7 +9,8 @@ import java.util.List;
 public class SidebarView {
     public static ListView<Category> createSidebar(List<Category> categories) {
         ListView<Category> sidebar = new ListView<>(FXCollections.observableArrayList(categories));
-        sidebar.setPrefWidth(160);
+        sidebar.getStyleClass().add("category-list");
+        sidebar.setPrefWidth(210);
         return sidebar;
     }
 
