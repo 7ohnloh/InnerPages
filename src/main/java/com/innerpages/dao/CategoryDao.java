@@ -42,4 +42,29 @@ public class CategoryDao {
             throw new RuntimeException("Unable to create category", ex);
         }
     }
+
+    public boolean update(int id, String name) {
+        String sql = "UPDATE OR IGNORE categories SET name = ? WHERE id = ?";
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, name);
+            statement.setInt(2, id);
+            return statement.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            throw new RuntimeException("Unable to update category", ex);
+        }
+    }
+
+    public boolean delete(int id) {
+        String sql = "DELETE FROM categories WHERE id = ?";
+
+        try (Connection connection = DatabaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            return statement.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            throw new RuntimeException("Unable to delete category", ex);
+        }
+    }
 }
