@@ -4,9 +4,11 @@ import com.innerpages.controller.NavigationController;
 import com.innerpages.dao.CategoryDao;
 import com.innerpages.dao.CommentDao;
 import com.innerpages.dao.DatabaseManager;
+import com.innerpages.dao.SearchDao;
 import com.innerpages.dao.WeeklyEntryDao;
 import com.innerpages.model.Category;
 import com.innerpages.model.Comment;
+import com.innerpages.model.SearchResult;
 import com.innerpages.model.WeeklyEntry;
 import com.innerpages.view.SidebarView;
 import javafx.application.Application;
@@ -23,6 +25,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -36,11 +39,15 @@ public class MainApp extends Application {
     private final CategoryDao categoryDao = new CategoryDao();
     private final WeeklyEntryDao weeklyEntryDao = new WeeklyEntryDao();
     private final CommentDao commentDao = new CommentDao();
+    private final SearchDao searchDao = new SearchDao();
 
     private BorderPane root;
+    private BorderPane mainPane;
     private ListView<Category> sidebar;
+    private TextField searchField;
     private Category selectedCategory;
     private WeeklyEntry selectedEntry;
+    private Integer highlightedCommentId;
 
     @Override
     public void start(Stage stage) {
@@ -66,10 +73,15 @@ public class MainApp extends Application {
         leftPane.getStyleClass().add("sidebar-pane");
         VBox.setVgrow(sidebar, Priority.ALWAYS);
 
+        mainPane = new BorderPane();
+        mainPane.getStyleClass().add("main-pane");
+        mainPane.setTop(createSearchBar());
+        mainPane.setCenter(createWelcomeView());
+
         root = new BorderPane();
         root.getStyleClass().add("app-root");
         root.setLeft(leftPane);
-        root.setCenter(createWelcomeView());
+        root.setCenter(mainPane);
 
         Scene scene = new Scene(root, 900, 600);
         scene.getStylesheets().add(getClass().getResource("/innerpages.css").toExternalForm());
@@ -128,9 +140,104 @@ public class MainApp extends Application {
         return view;
     }
 
+    private Node createSearchBar() {
+        searchField = new TextField();
+        searchField.getStyleClass().add("search-field");
+        searchField.setPromptText("Search notes...");
+        searchField.setOnAction(event -> performSearch());
+
+        Button searchButton = new Button("Search");
+        searchButton.getStyleClass().addAll("button", "button-primary");
+        searchButton.setOnAction(event -> performSearch());
+
+        HBox searchBar = new HBox(10, searchField, searchButton);
+        searchBar.getStyleClass().add("search-bar");
+        searchBar.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+        return searchBar;
+    }
+
+    private void performSearch() {
+        String query = searchField.getText().trim();
+        if (query.isEmpty()) {
+            setMainContent(createWelcomeView());
+            return;
+        }
+
+        renderSearchResults(query);
+    }
+
+    private void renderSearchResults(String query) {
+        Label heading = new Label("Search Results");
+        heading.getStyleClass().add("page-heading");
+
+        Label queryLabel = new Label("Notes matching: \"" + query + "\"");
+        queryLabel.getStyleClass().add("muted-label");
+
+        VBox resultsList = new VBox(10);
+        resultsList.getStyleClass().add("entry-list");
+
+        for (SearchResult result : searchDao.searchComments(query)) {
+            resultsList.getChildren().add(createSearchResultCard(result));
+        }
+
+        if (resultsList.getChildren().isEmpty()) {
+            Label emptyLabel = new Label("No matching notes found");
+            emptyLabel.getStyleClass().add("empty-label");
+            resultsList.getChildren().add(emptyLabel);
+        }
+
+        VBox content = new VBox(12, heading, queryLabel, resultsList);
+        content.getStyleClass().add("content-pane");
+
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.getStyleClass().add("content-scroll");
+        scrollPane.setFitToWidth(true);
+        setMainContent(scrollPane);
+    }
+
+    private Node createSearchResultCard(SearchResult result) {
+        Label category = new Label(result.getCategoryName());
+        category.getStyleClass().add("search-category");
+
+        Label entryTitle = new Label(result.getWeeklyEntryTitle());
+        entryTitle.getStyleClass().add("card-title");
+
+        Label noteContent = new Label("\"" + result.getCommentContent() + "\"");
+        noteContent.getStyleClass().add("note-content");
+        noteContent.setWrapText(true);
+
+        VBox card = new VBox(8, category, entryTitle, noteContent);
+        card.getStyleClass().add("search-result-card");
+        card.setOnMouseClicked(event -> openSearchResult(result));
+        return card;
+    }
+
+    private void openSearchResult(SearchResult result) {
+        sidebar.getItems().stream()
+                .filter(category -> category.getId() == result.getCategoryId())
+                .findFirst()
+                .ifPresent(category -> {
+                    selectedCategory = category;
+                    sidebar.getSelectionModel().select(category);
+                });
+
+        highlightedCommentId = result.getCommentId();
+        WeeklyEntry entry = weeklyEntryDao.findById(result.getWeeklyEntryId());
+        if (entry == null) {
+            showAlert(Alert.AlertType.ERROR, "Missing entry", "This journal entry no longer exists.");
+            renderSearchResults(searchField.getText().trim());
+            return;
+        }
+
+        selectedEntry = entry;
+        renderEntryDetailView(entry);
+    }
+
     private void selectCategory(Category category) {
         selectedCategory = category;
         selectedEntry = null;
+        highlightedCommentId = null;
         new NavigationController().navigateTo(category.getName());
         renderCategoryView(category);
     }
@@ -164,7 +271,7 @@ public class MainApp extends Application {
         ScrollPane scrollPane = new ScrollPane(content);
         scrollPane.getStyleClass().add("content-scroll");
         scrollPane.setFitToWidth(true);
-        root.setCenter(scrollPane);
+        setMainContent(scrollPane);
     }
 
     private Node createWeeklyEntryCard(WeeklyEntry entry) {
@@ -205,6 +312,7 @@ public class MainApp extends Application {
         }
 
         selectedEntry = currentEntry;
+        highlightedCommentId = null;
         renderEntryDetailView(currentEntry);
     }
 
@@ -257,7 +365,7 @@ public class MainApp extends Application {
         ScrollPane scrollPane = new ScrollPane(content);
         scrollPane.getStyleClass().add("content-scroll");
         scrollPane.setFitToWidth(true);
-        root.setCenter(scrollPane);
+        setMainContent(scrollPane);
     }
 
     private Node createCommentCard(Comment comment) {
@@ -280,6 +388,9 @@ public class MainApp extends Application {
         actions.setAlignment(Pos.CENTER_LEFT);
         VBox card = new VBox(8, createdAt, content, actions);
         card.getStyleClass().add("note-card");
+        if (highlightedCommentId != null && highlightedCommentId == comment.getId()) {
+            card.getStyleClass().add("note-card-highlight");
+        }
         return card;
     }
 
@@ -340,8 +451,9 @@ public class MainApp extends Application {
         categoryDao.delete(category.getId());
         selectedCategory = null;
         selectedEntry = null;
+        highlightedCommentId = null;
         SidebarView.refreshSidebar(sidebar, categoryDao.findAll());
-        root.setCenter(createWelcomeView());
+        setMainContent(createWelcomeView());
     }
 
     private void addWeeklyEntry(Category category) {
@@ -385,6 +497,7 @@ public class MainApp extends Application {
 
         weeklyEntryDao.delete(entry.getId());
         selectedEntry = null;
+        highlightedCommentId = null;
         renderSelectedCategory();
     }
 
@@ -421,14 +534,14 @@ public class MainApp extends Application {
 
     private void renderSelectedCategory() {
         if (selectedCategory == null) {
-            root.setCenter(createWelcomeView());
+            setMainContent(createWelcomeView());
             return;
         }
 
         sidebar.getItems().stream()
                 .filter(category -> category.getId() == selectedCategory.getId())
                 .findFirst()
-                .ifPresentOrElse(this::selectCategory, () -> root.setCenter(createWelcomeView()));
+                .ifPresentOrElse(this::selectCategory, () -> setMainContent(createWelcomeView()));
     }
 
     private void renderSelectedEntry() {
@@ -445,6 +558,10 @@ public class MainApp extends Application {
 
         selectedEntry = currentEntry;
         renderEntryDetailView(currentEntry);
+    }
+
+    private void setMainContent(Node content) {
+        mainPane.setCenter(content);
     }
 
     private Optional<String> showTextInput(String title, String header, String content, String defaultValue) {

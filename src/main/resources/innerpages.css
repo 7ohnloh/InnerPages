@@ -8,6 +8,10 @@
     -fx-background-color: #f6f7f9;
 }
 
+.main-pane {
+    -fx-background-color: #f6f7f9;
+}
+
 .sidebar-pane {
     -fx-background-color: #ffffff;
     -fx-padding: 20;
@@ -44,6 +48,27 @@
 .category-list .list-cell:selected {
     -fx-background-color: #2563eb;
     -fx-text-fill: #ffffff;
+}
+
+.search-bar {
+    -fx-background-color: #ffffff;
+    -fx-padding: 16 28;
+    -fx-border-color: transparent transparent #e5e7eb transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.search-field {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 8;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 8;
+    -fx-padding: 9 12;
+    -fx-prompt-text-fill: #9ca3af;
+}
+
+.search-field:focused {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #2563eb;
 }
 
 .content-scroll {
@@ -86,6 +111,34 @@
     -fx-border-width: 1;
     -fx-padding: 16;
     -fx-effect: dropshadow(gaussian, rgba(17, 24, 39, 0.08), 14, 0.14, 0, 3);
+}
+
+.search-result-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(17, 24, 39, 0.06), 12, 0.12, 0, 2);
+}
+
+.search-result-card:hover {
+    -fx-border-color: #93c5fd;
+    -fx-background-color: #f8fbff;
+}
+
+.search-category {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #2563eb;
+}
+
+.note-card-highlight {
+    -fx-border-color: #f59e0b;
+    -fx-background-color: #fffbeb;
+    -fx-effect: dropshadow(gaussian, rgba(245, 158, 11, 0.22), 18, 0.2, 0, 3);
 }
 
 .card-title {
