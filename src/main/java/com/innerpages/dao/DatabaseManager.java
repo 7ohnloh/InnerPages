@@ -16,6 +16,16 @@ public class DatabaseManager {
     public static void initializeDatabase() {
         try (Connection connection = getConnection(); Statement statement = connection.createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS pages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT)");
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS categories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL UNIQUE,
+                        created_at TEXT
+                    )
+                    """);
+            statement.executeUpdate("INSERT OR IGNORE INTO categories (name, created_at) VALUES ('School', datetime('now'))");
+            statement.executeUpdate("INSERT OR IGNORE INTO categories (name, created_at) VALUES ('Exchange', datetime('now'))");
+            statement.executeUpdate("INSERT OR IGNORE INTO categories (name, created_at) VALUES ('Personal', datetime('now'))");
         } catch (SQLException ex) {
             throw new RuntimeException("Unable to initialize SQLite database", ex);
         }

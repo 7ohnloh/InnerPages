@@ -1,16 +1,19 @@
 package com.innerpages.view;
 
+import com.innerpages.model.Category;
 import javafx.collections.FXCollections;
 import javafx.scene.control.ListView;
 
+import java.util.List;
+
 public class SidebarView {
-    public static ListView<String> createSidebar() {
-        ListView<String> sidebar = new ListView<>(FXCollections.observableArrayList(
-                "School",
-                "Exchange",
-                "Personal"
-        ));
+    public static ListView<Category> createSidebar(List<Category> categories) {
+        ListView<Category> sidebar = new ListView<>(FXCollections.observableArrayList(categories));
         sidebar.setPrefWidth(160);
         return sidebar;
+    }
+
+    public static void refreshSidebar(ListView<Category> sidebar, List<Category> categories) {
+        sidebar.setItems(FXCollections.observableArrayList(categories));
     }
 }
